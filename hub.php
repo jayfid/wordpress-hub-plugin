@@ -37,10 +37,9 @@ class Hub_Widget extends WP_Widget {
     if ( ! empty( $title ) )
       echo $before_title . $title . $after_title;
       if ( isset( $instance[ 'github_user' ] ) && $instance[ 'github_user' ] != '' ) {
-        $cache_file = dirname(__FILE__) . '/projects.cache';
-        if ( isset($instance[ 'cache' ]) && $instance[ 'cache' ] && file_exists($cache_file) && filemtime($cache_file) + $instance[ 'cache' ] > time() ) {
-          $output = file_get_contents($cache_file);
-          echo $output;
+        $cached_data = get_option('hub_widget_cache');
+        if ( isset($instance[ 'cache' ]) && $instance[ 'cache' ] && $cached_data && !empty($cached_data) && $cached_data['time'] + $instance[ 'cache' ] > time() ) {
+          echo $cached_data['content'];
           return;
         }
         else {
@@ -55,7 +54,7 @@ class Hub_Widget extends WP_Widget {
               if ( !isset( $data['message'] ) ) {
                 $output = "";
                 $x = plugin_dir_url(__FILE__);
-                $output .= '<a href="https://www.github.com" title="Github"><img alt="Github.com" src="'.$x.'octocat.png" /></a>';
+                $output .= '<a href="https://www.github.com" title="Github"><img alt="Github.com" width="216" height="216" src="'.$x.'octocat.png" /></a>';
                 $output.= '<h3 style="text-align:center;margin-bottom:1em;"><a href="https://www.github.com/' . $instance[ 'github_user' ] . '">' . $instance[ 'github_user' ] . ' on GitHub</a></h3>';
                 $output .= "<ul>";
                 foreach ( $data as $repo ) {
@@ -65,7 +64,8 @@ class Hub_Widget extends WP_Widget {
                   $output .= '</li>';
                 }
                 $output .= "</ul>";
-                file_put_contents($cache_file, $output);
+                update_option('hub_widget_cache', array('time' => time(), 'content' => $output));
+                //file_put_contents($cache_file, $output);
                 echo $output;
               }
               elseif ( $data['message'] != 'Not Found' ) {
@@ -100,7 +100,7 @@ class Hub_Widget extends WP_Widget {
   public function update( $new_instance, $old_instance ) {
     $instance = array();
     $instance['title'] = strip_tags( $new_instance['title'] );
-    if ($new_instance['github_user'] != $old_instance['github_user']) {
+    if ($new_instance['github_user'] != $old_instance['github_user'] && $old_instance['github_user'] != '') {
       $instance[ 'cache' ] = 0;
     }
     else {
